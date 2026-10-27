@@ -90,11 +90,12 @@ def load_csv(
         raise UploadError("The CSV file contains no data or columns.")
 
     # Strip and de-duplicate column headers
-    raw_columns = [str(c).strip() for c in df.columns]
+    import re
+    raw_columns = [re.sub(r"\s*\.\d+$", "", str(c).strip()).strip() for c in df.columns]
     seen = {}
     deduped_columns = []
     for c in raw_columns:
-        if not c:
+        if not c or c.startswith("Unnamed:"):
             c = "unnamed"
         if c in seen:
             seen[c] += 1
@@ -126,14 +127,15 @@ def load_csv(
     date_columns_parsed: List[str] = []
     for col in df.columns:
         col_lower = col.lower()
-        if ("date" in col_lower or "time" in col_lower) and df[col].dtype == object:
-            non_null_count = df[col].notna().sum()
-            if non_null_count > 0:
-                parsed = pd.to_datetime(df[col], errors="coerce")
-                valid_parsed_count = parsed.notna().sum()
-                if valid_parsed_count / non_null_count >= 0.80:
-                    df[col] = parsed
-                    date_columns_parsed.append(col)
+        if ("date" in col_lower or "time" in col_lower) and not pd.api.types.is_datetime64_any_dtype(df[col]):
+            if not pd.api.types.is_numeric_dtype(df[col]):
+                non_null_count = df[col].notna().sum()
+                if non_null_count > 0:
+                    parsed = pd.to_datetime(df[col], errors="coerce")
+                    valid_parsed_count = parsed.notna().sum()
+                    if valid_parsed_count / non_null_count >= 0.80:
+                        df[col] = parsed
+                        date_columns_parsed.append(col)
 
     report = IngestReport(
         row_count=len(df),

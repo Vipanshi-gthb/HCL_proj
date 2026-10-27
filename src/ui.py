@@ -133,10 +133,12 @@ def handle_file_upload(file_obj, session_state: Dict[str, Any]):
         schema = extract_schema(df)
         overview = create_dataset_overview(df)
 
-        session_state["df"] = df
-        session_state["schema"] = schema
-        session_state["overview"] = overview
-        session_state["timestamps"] = []
+        new_session = {
+            "df": df,
+            "schema": schema,
+            "overview": overview,
+            "timestamps": [],
+        }
 
         overview_msg = (
             f"✅ **Dataset Loaded Successfully**\n"
@@ -154,7 +156,7 @@ def handle_file_upload(file_obj, session_state: Dict[str, Any]):
         preview_df = pd.DataFrame(overview.preview_records)
 
         status_text = f"Dataset active: {report.row_count:,} rows, {report.col_count} columns"
-        return session_state, overview_msg, dtypes_df, preview_df, status_text
+        return new_session, overview_msg, dtypes_df, preview_df, status_text
 
     except UploadError as e:
         session_state = {"df": None, "schema": None, "overview": None, "timestamps": []}

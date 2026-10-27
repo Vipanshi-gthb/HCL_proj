@@ -174,7 +174,22 @@ def execute_plan(plan: QueryPlan, df: pd.DataFrame) -> ExecutionResult:
 
         # 3. Scalar Aggregate
         elif op == "scalar_aggregate":
-            val = getattr(filtered_df[metric], agg)()
+            if agg == "sum":
+                val = filtered_df[metric].sum()
+            elif agg == "mean":
+                val = filtered_df[metric].mean()
+            elif agg == "median":
+                val = filtered_df[metric].median()
+            elif agg == "min":
+                val = filtered_df[metric].min()
+            elif agg == "max":
+                val = filtered_df[metric].max()
+            elif agg == "count":
+                val = filtered_df[metric].count()
+            elif agg == "nunique":
+                val = filtered_df[metric].nunique()
+            else:
+                val = filtered_df[metric].agg(agg)
             # Round float values
             if isinstance(val, (float, np.floating)):
                 val = round(float(val), 2)
