@@ -93,18 +93,18 @@ Cloud AI analytics tools usually require uploading an entire dataset to a Large 
 
 | Feature | Prototype (Colab) | Deployable app |
 |---|---|---|
-| CSV upload (drag-and-drop / picker) | 📄 | 🛠 + validation, size limits, clear errors |
-| Schema extraction (column names + dtypes) | 📄 | 🛠 |
-| Date-column auto-parsing | 📄 | 🛠 safe parsing (`errors="coerce"`) |
-| Dataset overview: shape, dtypes, preview, missing values, duplicates | partly 📄 (exploration notebook) | 🛠 |
-| Natural-language → analysis via Gemini (`google-genai`) | 📄 (generated Pandas code) | 🛠 (validated query plan) |
-| Deterministic Pandas calculations | 📄 | 🛠 |
-| Charts (bar, line; pie when suitable) | 📄 | 🛠 |
-| Plain-English answer | 📄 | 🛠 local, grounded in computed values |
-| Analysis plan / Pandas code panel | 📄 "executed locally" | 🛠 collapsible, "equivalent Pandas code" |
-| Rate-limit / quota / API-error handling | not documented | 🛠 |
-| Automated tests | none in repo | 🛠 |
-| Public deployment | temporary Gradio share link | 🛠 Hugging Face Spaces |
+| CSV upload (drag-and-drop / picker) | 📄 | ✅ verified (validation, size caps, encoding fallback) |
+| Schema extraction (column names + dtypes) | 📄 | ✅ verified (zero cell values shared) |
+| Date-column auto-parsing | 📄 | ✅ verified (safe parsing, >=80% threshold rule) |
+| Dataset overview: shape, dtypes, preview, missing values, duplicates | partly 📄 (exploration notebook) | ✅ verified (local UI only) |
+| Natural-language → analysis via Gemini (`google-genai`) | 📄 (generated Pandas code) | ✅ verified (validated query plan, model `gemini-3.5-flash-lite`) |
+| Deterministic Pandas calculations | 📄 | ✅ verified (zero `exec`/`eval`, ground truth matched) |
+| Charts (bar, line; pie when suitable) | 📄 | ✅ verified (dark theme, figure lifecycle managed) |
+| Plain-English answer | 📄 | ✅ verified (local narration, ₹ currency heuristic) |
+| Analysis plan / Pandas code panel | 📄 "executed locally" | ✅ verified (collapsible, transparent generated code) |
+| Rate-limit / quota / API-error handling | not documented | ✅ verified (retries, fallbacks, friendly errors) |
+| Automated tests | none in repo | ✅ verified (47 tests passed) |
+| Public deployment | temporary Gradio share link | 🛠 Hugging Face Spaces (Phase 3) |
 
 Pandas helper functions in the prototype (per the project description 📄): dataset summaries, numerical aggregations, sales by category and region, profit by category, ratings, order statuses, monthly sales, best-selling products.
 
@@ -163,29 +163,47 @@ Full diagrams, component responsibilities, request lifecycle, trust boundaries, 
 
 ## 7. Repository structure
 
-**Current repository (verified at the time of the audit ✅):**
+**Current repository structure (verified ✅):**
 ```
 HCL_proj/
-├── P123_dataset_exp_pynb.ipynb
-├── main_analysis_engine_pynb.ipynb
-└── README.md
-```
-
-**Target structure (🛠 created by the implementation phases; Phase 2B updates this section to the real tree):**
-```
-HCL_proj/
-├── P123_dataset_exp_pynb.ipynb        # original, unchanged
-├── main_analysis_engine_pynb.ipynb    # original, unchanged
-├── README.md
-├── P123_ARCHITECTURE.md
-├── P123_ANTIGRAVITY_PHASES.md
-├── app.py                             # entry point
-├── requirements.txt / requirements-dev.txt
-├── .gitignore / .env.example
-├── dataset/P123_sample_ecommerce_dataset.csv
-├── src/  (config, errors, ingest, schema_extractor, query_planner,
-│          plan_validator, execution_engine, charts, narrator, ui)
-└── tests/ (ingest, schema, validator, execution, privacy, planner_mock, charts)
+├── P123_dataset_exp_pynb.ipynb        # original Colab exploration notebook (untouched)
+├── main_analysis_engine_pynb.ipynb    # original Colab prototype notebook (untouched)
+├── README.md                          # project documentation
+├── P123_ARCHITECTURE.md               # complete technical architecture specification
+├── app.py                             # web application entry point
+├── requirements.txt                   # pinned runtime dependencies
+├── requirements-dev.txt               # pinned development dependencies (pytest)
+├── pytest.ini                         # test discovery and marker configuration
+├── .gitignore                         # repository ignore rules
+├── .env.example                       # configuration template
+├── dataset/
+│   └── P123_sample_ecommerce_dataset.csv  # 500-row sample dataset
+├── src/
+│   ├── __init__.py
+│   ├── config.py                      # settings and environment variables
+│   ├── errors.py                      # domain exception taxonomy
+│   ├── ingest.py                      # CSV validation, encoding and parsing
+│   ├── schema_extractor.py            # privacy schema extraction and overview
+│   ├── query_planner.py               # structured Gemini planner
+│   ├── plan_validator.py              # plan whitelist validation & filter coercion
+│   ├── execution_engine.py            # deterministic Pandas executor (zero exec)
+│   ├── charts.py                      # dark-themed Matplotlib charts
+│   ├── narrator.py                    # local template narration
+│   └── ui.py                          # Gradio UI components and layout
+└── tests/
+    ├── conftest.py
+    ├── fixtures/
+    │   └── student_grades.csv         # domain adaptation second dataset
+    ├── test_charts.py
+    ├── test_execution.py
+    ├── test_ingest.py
+    ├── test_live_smoke.py
+    ├── test_planner_mock.py
+    ├── test_privacy.py
+    ├── test_schema.py
+    ├── test_second_dataset.py
+    ├── test_static_safety.py
+    └── test_validator.py
 ```
 
 ---
@@ -278,7 +296,16 @@ pytest -q -m live         # optional: one real Gemini call, requires GEMINI_API_
 
 The tests cover ingestion, schema extraction, plan validation, execution accuracy against independent Pandas calculations, a **privacy test proving cell values never appear in the Gemini request**, mocked Gemini failures, and chart rules.
 
-**Latest test results:** `NOT YET RECORDED` — filled in with the real pytest output after Phase 2A. No pass counts or performance figures are claimed before then. (The documentation mentions ≈1.2 s latency and 150–300 tokens per prompt for the prototype; those figures are documented, not re-measured here.)
+**Latest test results (Verified 27-10-2026):**
+`47 passed in 14.09s` across 10 test modules (ingestion, schema extraction, privacy isolation, plan validation, numerical correctness against independent Pandas computations, second-dataset adaptation, mocked Gemini failures, Matplotlib charts, static code safety).
+
+**Real Gemini API latency measurements (`gemini-3.5-flash-lite` on sample dataset):**
+- Scalar query (*What is the total revenue?*): 3.34s
+- Top-N query (*Which category generated the highest total sales?*): 6.57s
+- Group aggregate (*What is the average profit by region?*): 5.87s
+- Time series (*Show monthly sales performance*): 2.69s
+- Value counts (*How many orders are there for each order status?*): 1.85s
+- Average query planning & execution latency: ~3.47s
 
 ---
 

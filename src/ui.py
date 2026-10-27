@@ -42,6 +42,7 @@ CUSTOM_CSS = """
     --panel-bg: #1e293b;
     --border-color: #334155;
     --accent-indigo: #4f46e5;
+    --accent-hover: #4338ca;
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
 }
@@ -52,10 +53,11 @@ body, .gradio-container {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.dark-panel {
+/* Containers and Slate Panels */
+.slate-panel {
     background-color: var(--panel-bg) !important;
     border: 1px solid var(--border-color) !important;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 16px;
     margin-bottom: 12px;
 }
@@ -64,38 +66,74 @@ body, .gradio-container {
 .badge-pill {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     background-color: var(--accent-indigo);
     color: #ffffff !important;
     font-weight: 600;
     font-size: 0.85rem;
-    padding: 4px 12px;
+    padding: 4px 14px;
     border-radius: 9999px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Full width primary action button */
 .primary-btn {
-    background-color: var(--accent-indigo) !important;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
     color: #ffffff !important;
     font-weight: 600 !important;
+    font-size: 1rem !important;
     border-radius: 8px !important;
     border: none !important;
-    padding: 10px 16px !important;
+    padding: 12px 20px !important;
     width: 100% !important;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
 }
 
 .primary-btn:hover {
-    background-color: #4338ca !important;
+    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%) !important;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
 }
 
-/* Subtle privacy note */
+/* Example chip buttons */
+.chip-btn {
+    font-size: 0.8rem !important;
+    background-color: #1e293b !important;
+    color: #cbd5e1 !important;
+    border: 1px solid #334155 !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+}
+
+.chip-btn:hover {
+    border-color: #6366f1 !important;
+    color: #ffffff !important;
+}
+
+/* Subtle privacy footer */
 .privacy-footer {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     color: var(--text-secondary);
     text-align: center;
-    margin-top: 24px;
-    padding: 12px;
+    margin-top: 28px;
+    padding: 14px;
     border-top: 1px solid var(--border-color);
+}
+
+/* Mobile responsive adjustments (~390px viewport) */
+@media (max-width: 768px) {
+    .gradio-container {
+        padding: 8px !important;
+    }
+    .badge-pill {
+        font-size: 0.8rem;
+        padding: 3px 10px;
+    }
+    .primary-btn {
+        font-size: 0.95rem !important;
+        padding: 10px 14px !important;
+    }
 }
 """
 
@@ -375,11 +413,53 @@ def create_ui() -> gr.Blocks:
         ex6.click(lambda: SAMPLE_QUESTIONS[5], outputs=[question_input])
 
         def handle_clear():
-            return None, "", "Welcome! Upload a CSV file and ask a question.", None, None, "# Cleared", {"df": None, "schema": None, "overview": None, "timestamps": []}
+            clean_state = {"df": None, "schema": None, "overview": None, "timestamps": []}
+            return (
+                None,
+                "",
+                "👋 Welcome! Upload a CSV file and ask a question to begin analysis.",
+                None,
+                None,
+                "# Cleared",
+                clean_state,
+                None,
+                None,
+                "Upload a dataset to see overview.",
+                f"**System Status:** {configured_status}",
+            )
 
         clear_btn.click(
             fn=handle_clear,
-            outputs=[file_input, question_input, response_output, result_table, chart_output, code_output, session_state]
+            outputs=[
+                file_input,
+                question_input,
+                response_output,
+                result_table,
+                chart_output,
+                code_output,
+                session_state,
+                dtypes_table,
+                preview_table,
+                overview_text,
+                status_banner,
+            ],
+        )
+
+        file_input.clear(
+            fn=handle_clear,
+            outputs=[
+                file_input,
+                question_input,
+                response_output,
+                result_table,
+                chart_output,
+                code_output,
+                session_state,
+                dtypes_table,
+                preview_table,
+                overview_text,
+                status_banner,
+            ],
         )
 
     return demo
